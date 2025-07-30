@@ -2,27 +2,29 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { SignUpDto } from './dto/sign-up.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/users/entities/user.entity';
-import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
+import { SignInDto } from './dto/sign-in.dto';
+import { UsersService } from 'src/users/users.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
   constructor(
     private configService: ConfigService,
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    private usersService: UsersService,
+    private jwtService: JwtService,
   ) {}
 
   // 회원가입
   async signUp(signUpDto: SignUpDto) {
     const { email, password, passwordConfirm, ...etc } = signUpDto;
 
-    const existedUser = await this.findUserByEmail(email);
+    const existedUser = await this.usersService.findUserByEmail(email);
     if (existedUser) {
       throw new ConflictException('이미 가입된 이메일입니다.');
     }
@@ -34,17 +36,44 @@ export class AuthService {
     }
     const hashRounds = this.configService.get<number>('HASH_ROUNDS') as number;
     const hashedPassword = await bcrypt.hash(password, +hashRounds);
-    const user = await this.usersRepository.save({
+
+    const user = await this.usersService.registerUser(
       email,
-      password: hashedPassword,
-      ...etc,
-    });
+      hashedPassword,
+      etc,
+    );
 
     return user;
   }
+  async signIn(signInDto: SignInDto) {
+    const { email, password } = signInDto;
 
-  async findUserByEmail(email: string) {
-    const user = await this.usersRepository.findOneBy({ email });
-    return user;
+    const existedUser = await this.usersService.findUserByEmail(email);
+    if (!existedUser) {
+      throw new NotFoundException(
+        '등록된 회원이 아니거나, 비밀번호가 일치하지 않습니다.',
+      );
+    }
+    // 패스워드 검증
+    const isMatchedPassword = await bcrypt.compare(
+      password,
+      existedUser.password,
+    );
+    if (!isMatchedPassword) {
+      throw new UnauthorizedException('비밀번호가 일치하지 않습니다.');
+    }
+
+    const payload = { id: existedUser.id, username: existedUser.name };
+    // 토큰 발급
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('ACCESS_SECRET_KEY'),
+      expiresIn: '1h',
+    });
+
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('REFRESH_SECRET_KEY'),
+      expiresIn: '3d',
+    });
+    return { accessToken, refreshToken };
   }
 }

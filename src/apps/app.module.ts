@@ -6,6 +6,8 @@ import { AuthModule } from 'src/auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { databaseConfig } from 'src/config/db.config';
 import { UsersModule } from 'src/users/users.module';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { redisConfig } from 'src/config/redis.config';
 
 @Module({
   imports: [
@@ -17,6 +19,11 @@ import { UsersModule } from 'src/users/users.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: databaseConfig,
+    }),
+    RedisModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: redisConfig,
     }),
     AuthModule,
     UsersModule,

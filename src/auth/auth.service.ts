@@ -11,6 +11,8 @@ import { ConfigService } from '@nestjs/config';
 import { SignInDto } from './dto/sign-in.dto';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { Redis } from 'ioredis';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +20,7 @@ export class AuthService {
     private configService: ConfigService,
     private usersService: UsersService,
     private jwtService: JwtService,
+    @InjectRedis() private readonly redis: Redis,
   ) {}
 
   // 회원가입
@@ -74,6 +77,18 @@ export class AuthService {
       secret: this.configService.get<string>('REFRESH_SECRET_KEY'),
       expiresIn: '3d',
     });
+
+    await this.redis.setex(
+      `accessToken:userId:${existedUser.id}`,
+      60 * 60,
+      accessToken,
+    );
+
+    await this.redis.setex(
+      `refreshToken:userId:${existedUser.id}`,
+      60 * 60 * 24 * 7,
+      refreshToken,
+    );
     return { accessToken, refreshToken };
   }
 }

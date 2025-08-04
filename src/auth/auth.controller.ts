@@ -1,7 +1,18 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Delete,
+  UseGuards,
+  Request,
+  HttpStatus,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { UserInfo } from 'src/users/decorators/user-info.decorator';
+import { Payload } from './interfaces/payload.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -16,5 +27,15 @@ export class AuthController {
   async signIn(@Body() signInDto: SignInDto) {
     const data = await this.authService.signIn(signInDto);
     return data;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('sign-out')
+  async signOut(@UserInfo() userInfo: Payload) {
+    await this.authService.signOut(userInfo.userId);
+    return {
+      statusCode: HttpStatus.OK,
+      message: '로그아웃 되었습니다.',
+    };
   }
 }

@@ -8,6 +8,7 @@ import { databaseConfig } from 'src/config/db.config';
 import { UsersModule } from 'src/users/users.module';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { redisConfig } from 'src/config/redis.config';
+import { JwtStrategy } from 'src/auth/strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -29,6 +30,6 @@ import { redisConfig } from 'src/config/redis.config';
     UsersModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, JwtStrategy],
 })
 export class AppModule {}

@@ -66,7 +66,7 @@ export class AuthService {
       throw new UnauthorizedException('비밀번호가 일치하지 않습니다.');
     }
 
-    const payload = { id: existedUser.id, username: existedUser.name };
+    const payload = { userId: existedUser.id, userName: existedUser.name };
     // 토큰 발급
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('ACCESS_SECRET_KEY'),
@@ -90,5 +90,14 @@ export class AuthService {
       refreshToken,
     );
     return { accessToken, refreshToken };
+  }
+
+  async signOut(userId: number) {
+    // 레디스에 저장된 토큰 삭제
+    // 1. 액세스 토큰 삭제
+    await this.redis.del(`accessToken:userId:${userId}`);
+    // 2. 리프레시 토큰 삭제
+    await this.redis.del(`refreshToken:userId:${userId}`);
+    return true;
   }
 }

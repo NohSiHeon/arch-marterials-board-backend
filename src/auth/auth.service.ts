@@ -8,18 +8,18 @@ import {
 import { SignUpDto } from './dto/sign-up.dto';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
-import { SignInDto } from './dto/sign-in.dto';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
+import { Payload } from './interfaces/payload.interface';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private configService: ConfigService,
-    private usersService: UsersService,
-    private jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
     @InjectRedis() private readonly redis: Redis,
   ) {}
 
@@ -48,25 +48,8 @@ export class AuthService {
 
     return user;
   }
-  async signIn(signInDto: SignInDto) {
-    const { email, password } = signInDto;
-
-    const existedUser = await this.usersService.findUserByEmail(email);
-    if (!existedUser) {
-      throw new NotFoundException(
-        '등록된 회원이 아니거나, 비밀번호가 일치하지 않습니다.',
-      );
-    }
-    // 패스워드 검증
-    const isMatchedPassword = await bcrypt.compare(
-      password,
-      existedUser.password,
-    );
-    if (!isMatchedPassword) {
-      throw new UnauthorizedException('비밀번호가 일치하지 않습니다.');
-    }
-
-    const payload = { userId: existedUser.id, userName: existedUser.name };
+  async signIn(userInfo: Payload) {
+    const payload = { userId: userInfo.userId, userName: userInfo.userName };
     // 토큰 발급
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('ACCESS_SECRET_KEY'),
@@ -79,13 +62,13 @@ export class AuthService {
     });
 
     await this.redis.setex(
-      `accessToken:userId:${existedUser.id}`,
+      `accessToken:userId:${payload.userId}`,
       60 * 60,
       accessToken,
     );
 
     await this.redis.setex(
-      `refreshToken:userId:${existedUser.id}`,
+      `refreshToken:userId:${payload.userId}`,
       60 * 60 * 24 * 7,
       refreshToken,
     );
@@ -99,5 +82,21 @@ export class AuthService {
     // 2. 리프레시 토큰 삭제
     await this.redis.del(`refreshToken:userId:${userId}`);
     return true;
+  }
+
+  async validateUser(email: string, password: string) {
+    const user = await this.usersService.findUserByEmail(email);
+    if (!user) {
+      throw new NotFoundException(
+        '등록된 회원이 아니거나, 비밀번호가 일치하지 않습니다.',
+      );
+    }
+
+    const isMatchedPassword = await bcrypt.compare(password, user.password);
+    if (!isMatchedPassword) {
+      throw new UnauthorizedException('비밀번호가 일치하지 않습니다.');
+    }
+
+    return { name: user.name, id: user.id };
   }
 }

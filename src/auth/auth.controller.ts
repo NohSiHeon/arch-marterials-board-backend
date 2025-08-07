@@ -13,6 +13,7 @@ import { SignInDto } from './dto/sign-in.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { UserInfo } from 'src/users/decorators/user-info.decorator';
 import { Payload } from './interfaces/payload.interface';
+import { LocalAuthGuard } from './guards/local-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -23,9 +24,10 @@ export class AuthController {
     return await this.authService.signUp(signUpDto);
   }
 
+  @UseGuards(LocalAuthGuard)
   @Post('sign-in')
-  async signIn(@Body() signInDto: SignInDto) {
-    const data = await this.authService.signIn(signInDto);
+  async signIn(@Body() signInDto: SignInDto, @UserInfo() userInfo: Payload) {
+    const data = await this.authService.signIn(userInfo);
     return data;
   }
 

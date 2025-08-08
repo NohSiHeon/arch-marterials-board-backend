@@ -21,14 +21,27 @@ export class AuthController {
 
   @Post('sign-up')
   async signUp(@Body() signUpDto: SignUpDto) {
-    return await this.authService.signUp(signUpDto);
+    const data = await this.authService.signUp(signUpDto);
+    return {
+      statusCode: HttpStatus.CREATED,
+      message: '회원가입에 성공했습니다.',
+      data: {
+        id: data.id,
+        email: data.email,
+        name: data.name,
+      },
+    };
   }
 
   @UseGuards(LocalAuthGuard)
   @Post('sign-in')
   async signIn(@Body() signInDto: SignInDto, @UserInfo() userInfo: Payload) {
     const data = await this.authService.signIn(userInfo);
-    return data;
+    return {
+      statusCode: HttpStatus.OK,
+      message: '로그인에 성공했습니다.',
+      data: data,
+    };
   }
 
   @UseGuards(JwtAuthGuard)
@@ -38,6 +51,7 @@ export class AuthController {
     return {
       statusCode: HttpStatus.OK,
       message: '로그아웃 되었습니다.',
+      data: true,
     };
   }
 }

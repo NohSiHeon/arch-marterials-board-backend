@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, FindManyOptions, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
 import { MaterialsService } from 'src/materials/materials.service';
 import { OrderItemsService } from 'src/order-items/order-items.service';
 import { OrderStatus } from './enums/status.enum';
 import { UsersService } from 'src/users/users.service';
+import { MaterialCategory } from '@/materials/enums/material-category.enum';
+import { find } from 'rxjs';
 
 @Injectable()
 export class OrdersService {

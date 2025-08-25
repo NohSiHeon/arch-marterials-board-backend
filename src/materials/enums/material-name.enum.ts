@@ -1,0 +1,15 @@
+export enum MaterialName {
+  CEMENT = '시멘트',
+  CONCRETE = '콘크리트',
+  STEEL_BAR = '철근',
+  TIMBER = '목재',
+  TILE = '타일',
+  PAINT = '페인트',
+  DRYWALL = '석고보드',
+  WINDOW = '창문',
+  DOOR = '문',
+  PIPE = '배관',
+  WIRING = '전선',
+  LIGHTING = '조명',
+  AIR_CONDITIONER = '에어컨',
+}

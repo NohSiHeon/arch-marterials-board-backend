@@ -9,6 +9,9 @@ import { UsersModule } from 'src/users/users.module';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { redisConfig } from 'src/config/redis.config';
 import { JwtStrategy } from 'src/auth/strategies/jwt.strategy';
+import { OrdersModule } from 'src/orders/orders.module';
+import { OrderItemsModule } from 'src/order-items/order-items.module';
+import { MaterialsModule } from 'src/materials/materials.module';
 
 @Module({
   imports: [
@@ -28,6 +31,9 @@ import { JwtStrategy } from 'src/auth/strategies/jwt.strategy';
     }),
     AuthModule,
     UsersModule,
+    OrdersModule,
+    OrderItemsModule,
+    MaterialsModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy],

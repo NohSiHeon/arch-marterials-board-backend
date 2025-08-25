@@ -5,10 +5,12 @@ import {
   IsString,
   Length,
 } from '@nestjs/class-validator';
+import { Order } from 'src/orders/entities/order.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -41,6 +43,9 @@ export class User {
   @Column()
   address: string;
 
+  @Column({ default: 0 })
+  point: number;
+
   @IsDate()
   @CreateDateColumn()
   createdAt: Date;
@@ -48,4 +53,9 @@ export class User {
   @IsDate()
   @UpdateDateColumn()
   updatedAt: Date;
+
+  // 첫 번째 인자: 연결한 엔티티를 화살표 함수로 반환
+  // 두 번째 인자: Order 엔티티에서 User 엔티티를 참조하는 컬럼 지정
+  @OneToMany(() => Order, (orders) => orders.user)
+  orders: Order[];
 }

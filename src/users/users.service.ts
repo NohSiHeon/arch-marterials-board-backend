@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { SignUpDto } from 'src/auth/dto/sign-up.dto';
 
 @Injectable()
@@ -11,11 +15,13 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
+  // email로 유효한 유저인지 확인
   async findUserByEmail(email: string) {
     const user = await this.usersRepository.findOneBy({ email });
     return user;
   }
 
+  // id로 유효한 유저인지 확인
   async findUserById(id: number) {
     const user = await this.usersRepository.findOneBy({ id });
 
@@ -25,6 +31,17 @@ export class UsersService {
     return user;
   }
 
+  // 포인트 차감
+  async decreasePointWithManager(
+    manager: EntityManager,
+    user: User,
+    totalPrice: number,
+  ): Promise<void> {
+    user.point -= totalPrice;
+    await manager.save(User, user);
+  }
+
+  // 회원가입
   async registerUser(
     email: string,
     password: string,
@@ -33,8 +50,30 @@ export class UsersService {
     const user = await this.usersRepository.save({
       email,
       password,
+      point: 0,
       ...etc,
     });
+
+    return user;
+  }
+
+  // 유저 포인트가 부족한지 확인
+  async validateUserPoint(
+    manager: EntityManager,
+    userId: number,
+    totalPrice: number,
+  ): Promise<User> {
+    const user = await manager.findOne(User, {
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new BadRequestException('유저 정보를 찾을 수 없습니다.');
+    }
+
+    if (user.point < totalPrice) {
+      throw new BadRequestException('포인트가 부족합니다.');
+    }
 
     return user;
   }

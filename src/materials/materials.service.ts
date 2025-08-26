@@ -8,12 +8,15 @@ import { Material } from './entities/material.entity';
 import { EntityManager, FindManyOptions, Repository } from 'typeorm';
 import { MaterialName } from './enums/material-name.enum';
 import { MaterialCategory } from './enums/material-category.enum';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 
 @Injectable()
 export class MaterialsService {
   constructor(
     @InjectRepository(Material)
     private readonly materialRepository: Repository<Material>,
+    @InjectRedis() private readonly redis: Redis,
   ) {}
 
   async decreaseStockQuantityWithManager(
@@ -54,7 +57,20 @@ export class MaterialsService {
     page: number,
     limit: number,
     category: MaterialCategory | undefined,
-  ) {
+  ): Promise<{ data: Material[]; meta: any }> {
+    // 현재 쿼리가 빈번하게 사용되는 '기본 조회'인지 판단
+    const isDefaultQuery =
+      !category && sort === 'desc' && page === 1 && limit === 5;
+
+    // 기본 조회일 경우에만 Redis 캐시를 먼저 확인
+    if (isDefaultQuery) {
+      const cachedData = await this.redis.get('materials:default');
+      // 캐시 데이터가 존재하면 DB 접근 없이 즉시 반환
+      if (cachedData) {
+        return JSON.parse(cachedData) as { data: Material[]; meta: any };
+      }
+    }
+
     // 요청에 따라 where 조건 동적 할당
     const whereCondition: FindManyOptions<Material>['where'] = category
       ? { category }
@@ -74,14 +90,27 @@ export class MaterialsService {
     const [materials, totalCount] =
       await this.materialRepository.findAndCount(findOptions);
 
-    return {
-      data: materials, // 현재 페이지의 데이터
+    // 응답 데이터를 표준화된 형식으로 구성
+    const result = {
+      data: materials,
       meta: {
-        totalCount, // 전체 데이터 개수
+        totalCount,
         page,
         limit,
-        totalPages: Math.ceil(totalCount / limit), // 총 페이지 수 계산
+        totalPages: Math.ceil(totalCount / limit),
       },
     };
+
+    // 현재 쿼리가 '기본 조회'였을 경우, 다음 요청을 위해 Redis에 저장
+    if (isDefaultQuery) {
+      await this.redis.set(
+        'materials:default',
+        JSON.stringify(result),
+        'EX',
+        3600 * 24 * 7,
+      );
+    }
+
+    return result;
   }
 }

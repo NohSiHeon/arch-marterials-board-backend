@@ -1,4 +1,4 @@
-import { IsEnum, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
 import { MaterialCategory } from '../enums/material-category.enum';
 import { Type } from 'class-transformer';
 

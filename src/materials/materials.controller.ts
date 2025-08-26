@@ -1,6 +1,5 @@
 import { Controller, Get, HttpStatus, Query } from '@nestjs/common';
 import { MaterialsService } from './materials.service';
-import { MaterialCategory } from './enums/material-category.enum';
 import { FindMaterialsDto } from './dtos/find-materials.dto';
 @Controller('materials')
 export class MaterialsController {

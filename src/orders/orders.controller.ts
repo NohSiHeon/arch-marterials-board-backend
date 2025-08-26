@@ -1,9 +1,18 @@
-import { Controller, Post, Body, UseGuards, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  HttpStatus,
+  Get,
+  Query,
+} from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UserInfo } from 'src/users/decorators/user-info.decorator';
 import { Payload } from 'src/auth/interfaces/payload.interface';
+import { MaterialCategory } from '@/materials/enums/material-category.enum';
 
 @Controller('orders')
 export class OrdersController {

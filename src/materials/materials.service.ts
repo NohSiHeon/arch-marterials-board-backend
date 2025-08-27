@@ -113,4 +113,14 @@ export class MaterialsService {
 
     return result;
   }
+
+  async findMaterialById(id: number) {
+    const material = await this.materialRepository.findOne({ where: { id } });
+
+    if (!material) {
+      throw new NotFoundException('건축 자재를 찾을 수 없습니다.');
+    }
+
+    return material;
+  }
 }

@@ -1,4 +1,11 @@
-import { Controller, Get, HttpStatus, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Query,
+} from '@nestjs/common';
 import { MaterialsService } from './materials.service';
 import { FindMaterialsDto } from './dtos/find-materials.dto';
 @Controller('materials')
@@ -21,7 +28,20 @@ export class MaterialsController {
 
     return {
       statusCode: HttpStatus.OK,
-      message: '주문 목록을 성공적으로 조회하였습니다.',
+      message: '자재 목록을 성공적으로 조회하였습니다.',
+      data,
+    };
+  }
+
+  @Get(':id')
+  async findMaterial(@Param('id', ParseIntPipe) id: number) {
+    console.log('id', id);
+
+    const data = await this.materialsService.findMaterialById(id);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: '자재를 성공적으로 조회하였습니다.',
       data,
     };
   }

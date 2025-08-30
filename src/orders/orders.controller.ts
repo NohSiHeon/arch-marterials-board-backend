@@ -6,6 +6,8 @@ import {
   HttpStatus,
   Get,
   Query,
+  Param,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -29,6 +31,22 @@ export class OrdersController {
     return {
       statusCode: HttpStatus.CREATED,
       message: '주문을 성공적으로 완료하였습니다.',
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/refund')
+  async refundOrder(
+    @UserInfo() payload: Payload,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const { userId } = payload;
+    const data = await this.ordersService.refundOrder(userId, id);
+
+    return {
+      status: HttpStatus.OK,
+      message: '환불을 성공적으로 완료하였습니다.',
       data,
     };
   }

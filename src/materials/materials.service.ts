@@ -18,7 +18,18 @@ export class MaterialsService {
     private readonly materialRepository: Repository<Material>,
     @InjectRedis() private readonly redis: Redis,
   ) {}
-
+  async increaseStockQuantityWithManager(
+    manager: EntityManager,
+    materialId: number,
+    quantity: number,
+  ): Promise<void> {
+    await manager.increment(
+      Material,
+      { id: materialId },
+      'stockQuantity',
+      quantity,
+    );
+  }
   async decreaseStockQuantityWithManager(
     manager: EntityManager,
     materialId: number,

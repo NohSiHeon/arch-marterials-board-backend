@@ -35,8 +35,6 @@ export class MaterialsController {
 
   @Get(':id')
   async findMaterial(@Param('id', ParseIntPipe) id: number) {
-    console.log('id', id);
-
     const data = await this.materialsService.findMaterialById(id);
 
     return {

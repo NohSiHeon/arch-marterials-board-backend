@@ -1,6 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { DataSource, FindManyOptions, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  FindManyOptions,
+  Repository,
+} from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
 import { MaterialsService } from 'src/materials/materials.service';
@@ -99,6 +109,90 @@ export class OrdersService {
 
       await queryRunner.commitTransaction();
       return newOrder;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+  async findOrderById(id: number) {
+    const order = await this.orderRepository.findOne({
+      where: { id },
+      relations: ['orderItems', 'user'],
+    });
+    if (!order) {
+      throw new NotFoundException('존재하지 않거나 유효하지 않은 주문입니다.');
+    }
+    return order;
+  }
+
+  async findOrderByIdWithManager(manager: EntityManager, id: number) {
+    const order = await manager.findOne(Order, {
+      where: { id },
+      relations: ['orderItems', 'user', 'orderItems.material'],
+    });
+
+    if (!order) {
+      throw new NotFoundException('존재하지 않거나 유효하지 않은 주문입니다.');
+    }
+
+    return order;
+  }
+  async refundOrder(userId: number, id: number) {
+    const order = await this.findOrderById(id);
+    if (order.user.id !== userId) {
+      throw new ForbiddenException('접근 권한이 없는 주문입니다.');
+    }
+
+    if (order.status === OrderStatus.REFUNDED) {
+      throw new ConflictException('이미 환불된 주문입니다.');
+    }
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 주문 조회
+      const order = await this.findOrderByIdWithManager(
+        queryRunner.manager,
+        id,
+      );
+      // 이미 주문의 상태가 환불인 경우
+      if (order.status === OrderStatus.REFUNDED) {
+        throw new ConflictException('이미 환불된 주문입니다.');
+      }
+      // 주문의 상태를 환불로 변경
+      await queryRunner.manager.update(
+        Order,
+        { id },
+        { status: OrderStatus.REFUNDED },
+      );
+
+      // 유효한 유저인지 확인
+      const user = await this.usersService.findUserByIdWithManager(
+        queryRunner.manager,
+        userId,
+      );
+      // 유저 포인트 환불
+      await this.usersService.increasePointWithManager(
+        queryRunner.manager,
+        user,
+        order.totalAmount,
+      );
+      // 자재 재고 증가
+      for (const item of order.orderItems) {
+        if (item.material) {
+          await this.materialsService.increaseStockQuantityWithManager(
+            queryRunner.manager,
+            item.material.id,
+            item.quantity,
+          );
+        }
+      }
+
+      await queryRunner.commitTransaction();
+      return order;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

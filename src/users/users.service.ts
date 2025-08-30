@@ -31,6 +31,27 @@ export class UsersService {
     return user;
   }
 
+  // 트랜잭션을 통한 id로 유효한 유저인지 확인
+  async findUserByIdWithManager(manager: EntityManager, userId: number) {
+    const user = await manager.findOne(User, { where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('유효하지 않은 회원입니다.');
+    }
+
+    return user;
+  }
+
+  // 포인트 증가
+  async increasePointWithManager(
+    manager: EntityManager,
+    user: User,
+    price: number,
+  ) {
+    user.point += price;
+    await manager.save(User, user);
+    return;
+  }
   // 포인트 차감
   async decreasePointWithManager(
     manager: EntityManager,

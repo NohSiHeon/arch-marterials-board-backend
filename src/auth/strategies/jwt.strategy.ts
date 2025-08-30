@@ -55,7 +55,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (user.name !== payload.userName) {
       throw new UnauthorizedException('Invalid or expired Token2');
     }
-
     return { userId: userId, userName: user.name };
   }
 }

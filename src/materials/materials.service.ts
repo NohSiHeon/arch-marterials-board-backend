@@ -50,6 +50,7 @@ export class MaterialsService {
   ): Promise<Material> {
     const material = await manager.findOne(Material, {
       where: { name },
+      lock: { mode: 'pessimistic_write' },
     });
 
     if (!material) {

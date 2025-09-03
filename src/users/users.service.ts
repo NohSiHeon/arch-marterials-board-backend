@@ -33,7 +33,10 @@ export class UsersService {
 
   // 트랜잭션을 통한 id로 유효한 유저인지 확인
   async findUserByIdWithManager(manager: EntityManager, userId: number) {
-    const user = await manager.findOne(User, { where: { id: userId } });
+    const user = await manager.findOne(User, {
+      where: { id: userId },
+      lock: { mode: 'pessimistic_write' },
+    });
 
     if (!user) {
       throw new NotFoundException('유효하지 않은 회원입니다.');
@@ -86,6 +89,7 @@ export class UsersService {
   ): Promise<User> {
     const user = await manager.findOne(User, {
       where: { id: userId },
+      lock: { mode: 'pessimistic_write' },
     });
 
     if (!user) {

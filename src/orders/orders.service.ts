@@ -131,6 +131,7 @@ export class OrdersService {
     const order = await manager.findOne(Order, {
       where: { id },
       relations: ['orderItems', 'user', 'orderItems.material'],
+      lock: { mode: 'pessimistic_write' },
     });
 
     if (!order) {
@@ -139,6 +140,8 @@ export class OrdersService {
 
     return order;
   }
+
+  // 주문 취소(환불)
   async refundOrder(userId: number, id: number) {
     const order = await this.findOrderById(id);
     if (order.user.id !== userId) {

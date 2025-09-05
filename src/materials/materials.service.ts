@@ -10,6 +10,7 @@ import { MaterialName } from './enums/material-name.enum';
 import { MaterialCategory } from './enums/material-category.enum';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
+import { UpdateMaterialDto } from './dtos/update-material.dto';
 
 @Injectable()
 export class MaterialsService {
@@ -129,10 +130,81 @@ export class MaterialsService {
   async findMaterialById(id: number) {
     const material = await this.materialRepository.findOne({ where: { id } });
 
-    if (!material) {
-      throw new NotFoundException('건축 자재를 찾을 수 없습니다.');
+    return material;
+  }
+
+  async updateMaterial(id: number, updateMaterialDto: UpdateMaterialDto) {
+    const { description, stockQuantity, price } = updateMaterialDto;
+
+    // 변경 사항이 들어왔는지 확인
+    if (!description && !stockQuantity && !price) {
+      throw new BadRequestException('최소한 하나의 변경 사항이 있어야 합니다.');
     }
 
-    return material;
+    // 자재 조회
+    const material = await this.findMaterialById(id);
+
+    // 자재 없을 경우 예외 처리
+    if (!material) {
+      throw new NotFoundException('찾을 수 없는 자재 입니다.');
+    }
+
+    // 자재 정보 수정
+    await this.materialRepository.update(
+      { id },
+      {
+        description,
+        stockQuantity,
+        price,
+      },
+    );
+    // 캐싱 데이터 조회
+    const existedCache = await this.redis.get('materials:default');
+
+    // 기존 캐싱 데이터가 있을 경우 변경을 적용하기 위해 삭제
+    if (existedCache) {
+      // 캐싱 데이터 삭제
+      await this.deleteMaterialsCache();
+    }
+    // 캐싱 데이터 최신화 및 최신화된 자재 목록 반환
+    await this.updateMaterialsCache();
+    const updatedMaterial = await this.findMaterialById(id);
+
+    return updatedMaterial;
+  }
+
+  // 캐싱된 자재 목록 삭제
+  async deleteMaterialsCache() {
+    await this.redis.del('materials:default');
+  }
+
+  async updateMaterialsCache() {
+    // 자재 목록 가져오기
+    const [materials, totalCount] = await this.materialRepository.findAndCount({
+      order: { createdAt: 'desc' },
+      skip: 0,
+      take: 5,
+    });
+
+    // 응답 데이터를 표준화된 형식으로 구성
+    const result = {
+      data: materials,
+      meta: {
+        totalCount,
+        page: 1,
+        limit: 5,
+        totalPages: Math.ceil(totalCount / 5),
+      },
+    };
+
+    // 캐싱 업데이트
+    await this.redis.set(
+      'materials:default',
+      JSON.stringify(result),
+      'EX',
+      3600 * 24 * 7,
+    );
+
+    return result;
   }
 }

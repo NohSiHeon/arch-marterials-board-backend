@@ -1,13 +1,18 @@
 import {
+  Body,
   Controller,
   Get,
   HttpStatus,
   Param,
   ParseIntPipe,
+  Patch,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { MaterialsService } from './materials.service';
 import { FindMaterialsDto } from './dtos/find-materials.dto';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { UpdateMaterialDto } from './dtos/update-material.dto';
 @Controller('materials')
 export class MaterialsController {
   constructor(private readonly materialsService: MaterialsService) {}
@@ -40,6 +45,24 @@ export class MaterialsController {
     return {
       statusCode: HttpStatus.OK,
       message: '자재를 성공적으로 조회하였습니다.',
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id')
+  async updateMaterial(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateMaterialDto: UpdateMaterialDto,
+  ) {
+    const data = await this.materialsService.updateMaterial(
+      id,
+      updateMaterialDto,
+    );
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: '자재 정보를 성공적으로 수정하였습니다.',
       data,
     };
   }

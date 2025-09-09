@@ -13,6 +13,7 @@ import { MaterialsService } from './materials.service';
 import { FindMaterialsDto } from './dtos/find-materials.dto';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { UpdateMaterialDto } from './dtos/update-material.dto';
+import { RoleGuard } from '@/auth/guards/roles.guard';
 @Controller('materials')
 export class MaterialsController {
   constructor(private readonly materialsService: MaterialsService) {}
@@ -49,7 +50,7 @@ export class MaterialsController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Patch(':id')
   async updateMaterial(
     @Param('id', ParseIntPipe) id: number,

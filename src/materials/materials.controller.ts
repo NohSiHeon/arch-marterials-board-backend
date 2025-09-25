@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpStatus,
   Param,
@@ -64,6 +65,17 @@ export class MaterialsController {
     return {
       statusCode: HttpStatus.OK,
       message: '자재 정보를 성공적으로 수정하였습니다.',
+      data,
+    };
+  }
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Delete(':id')
+  async deleteMaterial(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.materialsService.deleteMaterial(id);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: '자재를 성공적으로 삭제하였습니다.',
       data,
     };
   }

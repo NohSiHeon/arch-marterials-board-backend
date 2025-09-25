@@ -207,4 +207,22 @@ export class MaterialsService {
 
     return result;
   }
+
+  async deleteMaterial(id: number) {
+    const material = await this.findMaterialById(id);
+
+    if (!material) {
+      throw new NotFoundException('존재하지 않는 자재입니다.');
+    }
+
+    await this.materialRepository.delete({ id });
+
+    await this.deleteMaterialsCache();
+    await this.updateMaterialsCache();
+
+    return {
+      success: true,
+      deletedCount: 1,
+    };
+  }
 }
